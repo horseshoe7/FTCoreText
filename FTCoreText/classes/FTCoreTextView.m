@@ -69,6 +69,7 @@ typedef enum {
 @synthesize isBullet = _isBullet;
 @synthesize imageName = _imageName;
 
+
 - (NSArray *)subnodes
 {
 	if (_subnodes == nil) {
@@ -234,7 +235,9 @@ typedef enum {
 
 
 @interface FTCoreTextView ()
-
+{
+    CGRect _linkHighlightFrame;
+}
 @property (nonatomic, assign) CTFramesetterRef framesetter;
 @property (nonatomic, retain) FTCoreTextNode *rootNode;
 
@@ -265,6 +268,8 @@ NSInteger rangeSort(NSString *range1, NSString *range2, void *context);
 @synthesize shadowColor = _shadowColor;
 @synthesize shadowOffset = _shadowOffset;
 @synthesize attributedString = _attributedString;
+@synthesize linkHighlightColor = _linkHighlightColor;
+@synthesize drawsLinkHighlights = _drawsLinkHighlights;
 
 #pragma mark - Tools methods
 
@@ -966,6 +971,9 @@ UITextAlignment UITextAlignmentFromCoreTextAlignment(FTCoreTextAlignement alignm
 	self.contentMode = UIViewContentModeRedraw;
 	[self setUserInteractionEnabled:YES];
 	
+    self.drawsLinkHighlights = NO;
+    self.linkHighlightColor = [UIColor lightGrayColor];
+    
 	FTCoreTextStyle *defaultStyle = [FTCoreTextStyle styleWithName:FTCoreTextTagDefault];
 	[self addStyle:defaultStyle];	
 	
@@ -1127,6 +1135,22 @@ UITextAlignment UITextAlignmentFromCoreTextAlignment(FTCoreTextAlignement alignm
 			NSLog(@"FTCoreText unable to render: %@", self.processedString);
 		}
 		else {
+            
+            // THIS IF STATEMENT WAS MY CHANGE!
+            if(CGRectEqualToRect(CGRectZero, _linkHighlightFrame) == NO && self.drawsLinkHighlights)
+            {
+                // draw highlight frame
+                CGContextSaveGState(context);   // so we don't worry about previous settings, we push another state onto the stack, make our modifications...
+                [self.linkHighlightColor setFill];  // choose any UIColor and then this is like calling CGContextSetFillColor
+                
+                [[UIColor lightGrayColor] setFill];
+                UIBezierPath *roundedRect = [UIBezierPath bezierPathWithRoundedRect: _linkHighlightFrame cornerRadius: 4];
+                [roundedRect fillWithBlendMode: kCGBlendModeNormal alpha:1.0f];
+                
+                CGContextRestoreGState(context);  // then push that off the stack, business as usual...
+                
+            }
+            
 			//draw images
 			if ([_images count] > 0) [self drawImages];
 			
@@ -1215,10 +1239,77 @@ UITextAlignment UITextAlignmentFromCoreTextAlignment(FTCoreTextAlignement alignm
 
 #pragma mark User Interaction
 
+- (void)addLinkHighlight:(NSDictionary*)data
+{
+    // i.e. if you clicked a link
+    
+    CGRect frame = CGRectFromString([data objectForKey:FTCoreTextDataFrame]);
+    
+    if (CGRectEqualToRect(CGRectZero, frame)){
+            
+        _linkHighlightFrame = CGRectZero;
+        return;
+    }
+    
+    frame.origin.x -= 3;
+    frame.origin.y -= 1;
+    frame.size.width += 6;
+    frame.size.height += 6;
+    
+    _linkHighlightFrame = frame;
+    _linkHighlightFrame.origin.x -= self.frame.origin.x;
+    _linkHighlightFrame.origin.y -= self.frame.origin.y;
+    
+    [self setNeedsDisplay];
+    
+    return;
+}
+
+- (void)removeLinkHighlight
+{
+    _linkHighlightFrame = CGRectZero;
+    [self setNeedsDisplay];
+
+}
+
+- (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
+{
+    [super touchesBegan: touches withEvent:event];
+    
+    if (![self isSystemUnder3_2]) {
+		
+        CGPoint point = [(UITouch *)[touches anyObject] locationInView:self];
+        NSDictionary *data = [self dataForPoint:point];
+        if (data) {
+            
+            if (self.drawsLinkHighlights) {
+                [self addLinkHighlight: data];
+            }
+            
+            
+        }
+	}
+}
+
+- (void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event
+{
+    [super touchesCancelled:touches withEvent:event];
+    
+    if (self.drawsLinkHighlights) {
+        [self removeLinkHighlight];
+    }
+    
+}
+
 - (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event
 {
 	[super touchesEnded:touches withEvent:event];
 	
+    if (self.drawsLinkHighlights) {
+        [self removeLinkHighlight];
+    }
+
+    
 	if (![self isSystemUnder3_2]) {
 		if (self.delegate && ([self.delegate respondsToSelector:@selector(touchedData:inCoreTextView:)] || [self.delegate respondsToSelector:@selector(coreTextView:receivedTouchOnData:)])) {
 			CGPoint point = [(UITouch *)[touches anyObject] locationInView:self];

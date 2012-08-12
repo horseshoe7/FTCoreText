@@ -94,26 +94,6 @@
 
 - (void)coreTextView:(FTCoreTextView *)acoreTextView receivedTouchOnData:(NSDictionary *)data {
     
-    CGRect frame = CGRectFromString([data objectForKey:FTCoreTextDataFrame]);
-    
-    if (CGRectEqualToRect(CGRectZero, frame)) return;
-    
-    frame.origin.x -= 3;
-    frame.origin.y -= 1;
-    frame.size.width += 6;
-    frame.size.height += 6;
-    UIView *view = [[UIView alloc] initWithFrame:frame];
-    [view.layer setCornerRadius:3];
-    [view setBackgroundColor:[UIColor orangeColor]];
-    [view setAlpha:0];
-    [acoreTextView.superview addSubview:view];
-    [UIView animateWithDuration:0.2 animations:^{
-        [view setAlpha:0.4];
-    } completion:^(BOOL finished) {
-        [UIView animateWithDuration:0.5 animations:^{
-            [view setAlpha:0];
-        }];
-    }];
     
     return;
     
@@ -134,6 +114,11 @@
 	scrollView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     coreTextView = [[FTCoreTextView alloc] initWithFrame:CGRectMake(20, 20, 280, 0)];
 	coreTextView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    
+    // NEW LINK HIGHLIGHTING FEATURE
+    coreTextView.drawsLinkHighlights = YES;
+    
+    
     // set text
     [coreTextView setText:[self textForView]];
     // set styles

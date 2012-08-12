@@ -60,6 +60,9 @@ extern NSString * const FTCoreTextDataAttributes;
 @property (nonatomic, retain) UIColor *shadowColor;
 @property (nonatomic, assign) CGSize shadowOffset;
 
+@property (nonatomic, assign) BOOL drawsLinkHighlights;  // whether to draw a rounded rectangle behind link text.  Defaults to NO.
+@property (nonatomic, retain) UIColor *linkHighlightColor;  // the color of that rounded rectangle.  Defaults to lightGrayColor
+
 /* Using this method, you then have to set the -text property to get any result */
 - (id)initWithFrame:(CGRect)frame;
 
